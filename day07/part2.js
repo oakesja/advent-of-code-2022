@@ -62,5 +62,3 @@ const totalNeeded = 30000000;
 const neededToDeleted = totalNeeded - (totalAvaiable - totalUsed);
 const deleteCandidates = dirSizes.filter(s => s >= neededToDeleted);
 console.log(_.sortBy(deleteCandidates)[0]);
-
-// 11789637 too high
