@@ -2,7 +2,7 @@ const fs = require("fs");
 const path = require("path");
 const _ = require("lodash");
 
-const file = path.resolve(__dirname, "./test-input.txt");
+const file = path.resolve(__dirname, "./real-input.txt");
 const data = fs.readFileSync(file).toString().split("\n");
 
 function parseMonekyId(input) {
@@ -10,19 +10,15 @@ function parseMonekyId(input) {
 }
 
 function parseItemsToStart(input) {
-  return input
-    .match(/Starting items: (.*)/)[1]
-    .split(",")
-    .map(n => BigInt(n));
+  return input.match(/Starting items: (.*)/)[1].split(",");
 }
 
 function parseOperation(input) {
-  const operation = input.match(/Operation: new = (.*)/)[1];
-  return operation.replace(/(\d+)/g, "$1n");
+  return input.match(/Operation: new = (.*)/)[1];
 }
 
 function parseDivisibleBy(input) {
-  return BigInt(input.match(/Test: divisible by (\d*)/)[1]);
+  return parseInt(input.match(/Test: divisible by (\d*)/)[1]);
 }
 
 function parseThrowTo(input) {
@@ -48,11 +44,18 @@ const monkeys = _(data)
   .map(parseMonkeyInfo)
   .value();
 
+const greatestCommonMultiple = _.reduce(
+  monkeys,
+  (accl, monkey) => accl * monkey.divisbleBy,
+  1
+);
+
 function simulateRound() {
   monkeys.forEach(monkey => {
     _.times(monkey.items.length, () => {
       const item = monkey.items.shift();
-      const newWorrayLevel = eval(monkey.operation.replaceAll("old", `${item}n`));
+      let newWorrayLevel =
+        eval(monkey.operation.replaceAll("old", item)) % greatestCommonMultiple;
       if (newWorrayLevel % monkey.divisbleBy === 0) {
         monkeys[monkey.ifTrueThrowTo].items.push(newWorrayLevel);
       } else {
@@ -63,15 +66,13 @@ function simulateRound() {
   });
 }
 
-_.times(20, simulateRound);
+_.times(10000, simulateRound);
 
-console.log(monkeys.map(m => m.inspectedItemCount));
+const [first, second] = _(monkeys)
+  .sortBy(m => m.inspectedItemCount)
+  .reverse()
+  .slice(0, 2)
+  .map(m => m.inspectedItemCount)
+  .value();
 
-// const [first, second] = _(monkeys)
-//   .sortBy(m => m.inspectedItemCount)
-//   .reverse()
-//   .slice(0, 2)
-//   .map(m => m.inspectedItemCount)
-//   .value();
-
-// console.log(first * second);
+console.log(first * second);
