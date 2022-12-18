@@ -2,13 +2,8 @@ const _ = require("lodash");
 const fs = require("fs");
 const path = require("path");
 
-const testFile = path.resolve(__dirname, `./test-input.txt`);
-const testPattern = fs.readFileSync(testFile).toString().trim();
-
-const realFile = path.resolve(__dirname, `./real-input.txt`);
-const realPattern = fs.readFileSync(realFile).toString().trim();
-
-const jetPattern = testPattern;
+let jetPattern;
+let repeatedPattern;
 const rockStartRoom = 3;
 const rowWidth = 7;
 const newRow = _.fill(Array(rowWidth), ".");
@@ -39,6 +34,11 @@ const rocks = [
     [".", ".", "@", "@", ".", ".", "."]
   ]
 ];
+
+function readFile(input) {
+  const file = path.resolve(__dirname, input);
+  return fs.readFileSync(file).toString().trim();
+}
 
 function displayState() {
   console.log();
@@ -133,7 +133,6 @@ function simulateRock(rock) {
 
   while (true) {
     const jet = jetPattern.charAt(jetPosition % jetPattern.length);
-    console.log(jet);
     if (jet === "<" && canMoveLeft(rockRows)) {
       moveLeft(rockRows);
     }
@@ -159,18 +158,10 @@ function simulateRock(rock) {
 
 function part1() {
   currentState = [];
+  currentTop = 0;
+  jetPosition = 0;
+
   _.times(2022, i => {
-    const rock = rocks[i % rocks.length];
-    console.log(i % rocks.length);
-    simulateRock(_.cloneDeep(rock));
-  });
-
-  displayState();
-}
-
-function part2() {
-  currentState = [];
-  _.times(1000000000000, i => {
     const rock = rocks[i % rocks.length];
     simulateRock(_.cloneDeep(rock));
   });
@@ -178,4 +169,68 @@ function part2() {
   console.log(currentState.length - currentTop);
 }
 
+function part2(patternCheck) {
+  currentState = [];
+  currentTop = 0;
+  jetPosition = 0;
+  let i = 0;
+  const patternLocations = [];
+  const heightLookup = {};
+  let heightAtFirstPattern;
+
+  while (patternLocations.length < 2) {
+    if (
+      patternCheck(
+        currentState
+          .slice(3)
+          .map(r => `|${r.join("")}|`)
+          .join("")
+      )
+    ) {
+      if (!heightAtFirstPattern) {
+        heightAtFirstPattern = currentState.length - currentTop;
+      }
+      patternLocations.push(i);
+    }
+    if (patternLocations.length > 0) {
+      heightLookup[i - patternLocations[0]] =
+        currentState.length - currentTop - heightAtFirstPattern;
+    }
+    const rock = rocks[i % rocks.length];
+    simulateRock(_.cloneDeep(rock));
+    i += 1;
+  }
+  console.log(patternLocations);
+
+  const patternCycle = patternLocations[1] - patternLocations[0];
+  const numberOfCyles = Math.floor((1000000000000 - patternLocations[0]) / patternCycle);
+  const lastCycleLength = (1000000000000 - patternLocations[0]) % patternCycle;
+
+  const answer =
+    heightLookup[lastCycleLength] +
+    heightAtFirstPattern +
+    heightLookup[patternCycle] * numberOfCyles;
+  console.log(answer);
+}
+
+// jetPattern = readFile("./test-input.txt");
+// repeatedPattern = readFile("./repeated-test-pattern.txt").replaceAll(/\s/g, "").trim();
+// const patternCheck = state => state.startsWith(repeatedPattern);
+
+jetPattern = readFile("./real-input.txt");
+repeatedPattern = readFile("./repeated-real-pattern.txt").replaceAll(/\s/g, "").trim();
+let patternCounts = [];
+const patternCheck = state => {
+  const count = state.split(repeatedPattern).length - 1;
+  if (count < 1) {
+    return false;
+  }
+  if (patternCounts.includes(count)) {
+    return false;
+  }
+  patternCounts.push(count);
+  return true;
+};
+
 part1();
+part2(patternCheck);
